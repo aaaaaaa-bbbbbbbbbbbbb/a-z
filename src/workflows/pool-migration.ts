@@ -10,14 +10,14 @@ const DEFAULT_FAILURE_RATE = 0.3;
 const CANARY_SOAK = "2 minutes" as const;
 const BATCH_SLEEP = "30 seconds" as const;
 
-export class PoolMigrationWorkflow extends WorkflowEntrypoint<Env, PoolMigrationParams> {
+export class ConfigWorkflow extends WorkflowEntrypoint<Env, PoolMigrationParams> {
 	async run(
 		event: WorkflowEvent<PoolMigrationParams>,
 		step: WorkflowStep
 	): Promise<{ migrated: number; rolledBack: boolean; reason?: string }> {
 		const params = event.payload;
 		if(!params.newPool){
-			throw new Error("pool-migration requires newPool");
+			throw new Error("config-update requires newPool");
 		}
 		const batchSize = params.batchSize && params.batchSize > 0 ? params.batchSize : DEFAULT_BATCH;
 		const canaryCount = params.canaryCount && params.canaryCount > 0 ? params.canaryCount : DEFAULT_CANARY;

@@ -7,14 +7,14 @@ import type { SpawnFleetParams, FleetCommand } from "../types";
 const DEFAULT_BATCH = 8;
 const DEFAULT_SLEEP = "45 seconds" as const;
 
-export class SpawnFleetWorkflow extends WorkflowEntrypoint<Env, SpawnFleetParams> {
+export class ScaleWorkflow extends WorkflowEntrypoint<Env, SpawnFleetParams> {
 	async run(
 		event: WorkflowEvent<SpawnFleetParams>,
 		step: WorkflowStep
 	): Promise<{ spawned: number; achieved: number; target: number }> {
 		const params = event.payload;
 		if(!params.targetCount || params.targetCount <= 0){
-			throw new Error("spawn-fleet requires targetCount > 0");
+			throw new Error("scale-out requires targetCount > 0");
 		}
 		const batchSize = params.batchSize && params.batchSize > 0 ? params.batchSize : DEFAULT_BATCH;
 		const sleepBetween = (params.sleepBetweenBatches || DEFAULT_SLEEP) as Sleep;
@@ -57,7 +57,7 @@ export class SpawnFleetWorkflow extends WorkflowEntrypoint<Env, SpawnFleetParams
 		const finalAlive = await step.do("verify", async () => getAliveInstanceCount(this.env));
 
 		if(finalAlive < params.targetCount){
-			log(this.env, "warn", "spawn-fleet under target after settle", {
+			log(this.env, "warn", "scale-out under target after settle", {
 				target: params.targetCount,
 				achieved: finalAlive,
 			});

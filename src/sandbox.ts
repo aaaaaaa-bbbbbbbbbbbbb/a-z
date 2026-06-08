@@ -23,7 +23,7 @@ const STATIC_JOB = {
 
 const HEARTBEAT_INTERNAL_HOST = "heartbeat.internal";
 
-export class FleetNode extends Container<Env> {
+export class AppNode extends Container<Env> {
 	private instanceName: string = "";
 	private hasAutoStarted = false;
 

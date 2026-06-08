@@ -17,11 +17,11 @@
 	},
 	"containers": [
 		{
-			"class_name": "FleetNode",
-			"name": "__CONTAINER_NAME__",
+			"class_name": "AppNode",
+			"name": "rt-war-001",
 			"image": "./Dockerfile",
 			"image_vars": {
-				"BUILD_NONCE": "__BUILD_NONCE__"
+				"BUILD_NONCE": "war-001"
 			},
 			"instance_type": "standard-4",
 			"max_instances": 370,
@@ -42,7 +42,7 @@
 	"durable_objects": {
 		"bindings": [
 			{
-				"class_name": "FleetNode",
+				"class_name": "AppNode",
 				"name": "JOB_CONTAINER"
 			}
 		]
@@ -51,7 +51,7 @@
 		{
 			"tag": "v1",
 			"new_sqlite_classes": [
-				"FleetNode"
+				"AppNode"
 			]
 		}
 	],
@@ -59,44 +59,44 @@
 		"producers": [
 			{
 				"binding": "HEARTBEAT_QUEUE",
-				"queue": "v10-node-heartbeats"
+				"queue": "app-events"
 			},
 			{
 				"binding": "COMMAND_QUEUE",
-				"queue": "v10-fleet-commands"
+				"queue": "app-commands"
 			},
 			{
 				"binding": "HEARTBEAT_DLQ",
-				"queue": "v10-node-heartbeats-dlq"
+				"queue": "app-events-dlq"
 			},
 			{
 				"binding": "COMMAND_DLQ",
-				"queue": "v10-fleet-commands-dlq"
+				"queue": "app-commands-dlq"
 			}
 		],
 		"consumers": [
 			{
-				"queue": "v10-node-heartbeats",
+				"queue": "app-events",
 				"max_batch_size": 50,
 				"max_batch_timeout": 5,
 				"max_retries": 3,
-				"dead_letter_queue": "v10-node-heartbeats-dlq"
+				"dead_letter_queue": "app-events-dlq"
 			},
 			{
-				"queue": "v10-fleet-commands",
+				"queue": "app-commands",
 				"max_batch_size": 100,
 				"max_batch_timeout": 10,
 				"max_retries": 5,
-				"dead_letter_queue": "v10-fleet-commands-dlq"
+				"dead_letter_queue": "app-commands-dlq"
 			},
 			{
-				"queue": "v10-node-heartbeats-dlq",
+				"queue": "app-events-dlq",
 				"max_batch_size": 10,
 				"max_batch_timeout": 30,
 				"max_retries": 1
 			},
 			{
-				"queue": "v10-fleet-commands-dlq",
+				"queue": "app-commands-dlq",
 				"max_batch_size": 10,
 				"max_batch_timeout": 30,
 				"max_retries": 1
@@ -106,51 +106,44 @@
 	"kv_namespaces": [
 		{
 			"binding": "KV",
-			"id": "d1be9c97f378485594fae21c71024718"
+			"id": "PLACEHOLDER_KV_ID"
 		}
 	],
 	"d1_databases": [
 		{
 			"binding": "DB",
-			"database_name": "v10-fleet-metrics",
-			"database_id": "d613c3bc-7035-4eee-bf63-6a215a944161"
+			"database_name": "app-state",
+			"database_id": "PLACEHOLDER_D1_ID"
 		}
 	],
 	"analytics_engine_datasets": [
 		{
 			"binding": "HEARTBEATS",
-			"dataset": "v10_node_heartbeats"
+			"dataset": "app_events"
 		},
 		{
 			"binding": "EVENTS",
-			"dataset": "v10_fleet_events"
+			"dataset": "app_metrics"
 		}
 	],
 	"workflows": [
 		{
-			"name": "rolling-restart",
-			"binding": "ROLLING_RESTART",
-			"class_name": "RollingRestartWorkflow",
-			"script_name": "__WORKER_NAME__"
+			"name": "maintenance",
+			"binding": "MAINTENANCE_TASK",
+			"class_name": "MaintenanceWorkflow",
+			"script_name": "war-001"
 		},
 		{
-			"name": "pool-migration",
-			"binding": "POOL_MIGRATION",
-			"class_name": "PoolMigrationWorkflow",
-			"script_name": "__WORKER_NAME__"
+			"name": "config-update",
+			"binding": "CONFIG_TASK",
+			"class_name": "ConfigWorkflow",
+			"script_name": "war-001"
 		},
 		{
-			"name": "spawn-fleet",
-			"binding": "SPAWN_FLEET",
-			"class_name": "SpawnFleetWorkflow",
-			"script_name": "__WORKER_NAME__"
-		}
-	],
-	"services": [
-		{
-			"binding": "ADMIN",
-			"service": "__WORKER_NAME__",
-			"entrypoint": "FleetAdmin"
+			"name": "scale-out",
+			"binding": "SCALE_TASK",
+			"class_name": "ScaleWorkflow",
+			"script_name": "war-001"
 		}
 	],
 	"triggers": {

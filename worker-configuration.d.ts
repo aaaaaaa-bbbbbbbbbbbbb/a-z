@@ -1,7 +1,7 @@
 declare namespace Cloudflare {
 	interface Env {
 
-		JOB_CONTAINER: DurableObjectNamespace<import("./src/index").FleetNode>;
+		JOB_CONTAINER: DurableObjectNamespace<import("./src/index").AppNode>;
 
 		DB: D1Database;
 		KV: KVNamespace;
@@ -16,11 +16,9 @@ declare namespace Cloudflare {
 
 		FLAGS?: Flagship;
 
-		ROLLING_RESTART: Workflow;
-		POOL_MIGRATION: Workflow;
-		SPAWN_FLEET: Workflow;
-
-		ADMIN: Service<typeof import("./src/index").FleetAdmin>;
+		MAINTENANCE_TASK: Workflow;
+		CONFIG_TASK: Workflow;
+		SCALE_TASK: Workflow;
 
 		API_KEY: string;
 		HEARTBEAT_HMAC_KEY: string;

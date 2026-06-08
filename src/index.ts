@@ -6,11 +6,11 @@ import{ runCron } from "./cron";
 import{ getFleetStatus, writeFleetCommand } from "./job-stats";
 import{ log } from "./metrics";
 import{ ensureSchema } from "./schema";
-import{ FleetNode } from "./sandbox";
+import{ AppNode } from "./sandbox";
 import{ FleetAdmin } from "./admin";
-import{ RollingRestartWorkflow } from "./workflows/rolling-restart";
-import{ PoolMigrationWorkflow } from "./workflows/pool-migration";
-import{ SpawnFleetWorkflow } from "./workflows/spawn-fleet";
+import{ MaintenanceWorkflow } from "./workflows/rolling-restart";
+import{ ConfigWorkflow } from "./workflows/pool-migration";
+import{ ScaleWorkflow } from "./workflows/spawn-fleet";
 import{ constantTimeEqualString } from "./auth";
 import type {
 	HeartbeatMessage,
@@ -20,7 +20,7 @@ import type {
 	SpawnFleetParams,
 } from "./types";
 
-export { FleetNode, FleetAdmin, RollingRestartWorkflow, PoolMigrationWorkflow, SpawnFleetWorkflow, ContainerProxy };
+export { AppNode, FleetAdmin, MaintenanceWorkflow, ConfigWorkflow, ScaleWorkflow, ContainerProxy };
 
 const app = new Hono<{ Bindings: Env }>();
 
@@ -77,43 +77,43 @@ app.post("/command/spawn", async (c) => {
 	}
 });
 
-app.post("/workflows/rolling-restart", async (c) => {
+app.post("/workflows/maintenance", async (c) => {
 	if(!auth(c)) return c.json({ error: "unauthorized" }, 401);
 	try{
 		const params = (await c.req.json().catch(() => ({}))) as RollingRestartParams;
 		if(!params.reason) params.reason = "manual";
-		const inst = await c.env.ROLLING_RESTART.create({ params });
+		const inst = await c.env.MAINTENANCE_TASK.create({ params });
 		return c.json({ id: inst.id, status: await inst.status() });
 	}catch(e){
-		log(c.env, "error", "rolling-restart trigger failed", { error: String(e) });
+		log(c.env, "error", "maintenance trigger failed", { error: String(e) });
 		return c.json({ error: String(e) }, 500);
 	}
 });
 
-app.post("/workflows/pool-migration", async (c) => {
+app.post("/workflows/config-update", async (c) => {
 	if(!auth(c)) return c.json({ error: "unauthorized" }, 401);
 	try{
 		const params = (await c.req.json()) as PoolMigrationParams;
 		if(!params?.newPool) return c.json({ error: "newPool required" }, 400);
-		const inst = await c.env.POOL_MIGRATION.create({ params });
+		const inst = await c.env.CONFIG_TASK.create({ params });
 		return c.json({ id: inst.id, status: await inst.status() });
 	}catch(e){
-		log(c.env, "error", "pool-migration trigger failed", { error: String(e) });
+		log(c.env, "error", "config-update trigger failed", { error: String(e) });
 		return c.json({ error: String(e) }, 500);
 	}
 });
 
-app.post("/workflows/spawn-fleet", async (c) => {
+app.post("/workflows/scale-out", async (c) => {
 	if(!auth(c)) return c.json({ error: "unauthorized" }, 401);
 	try{
 		const params = (await c.req.json()) as SpawnFleetParams;
 		if(!params?.targetCount || params.targetCount <= 0){
 			return c.json({ error: "targetCount > 0 required" }, 400);
 		}
-		const inst = await c.env.SPAWN_FLEET.create({ params });
+		const inst = await c.env.SCALE_TASK.create({ params });
 		return c.json({ id: inst.id, status: await inst.status() });
 	}catch(e){
-		log(c.env, "error", "spawn-fleet trigger failed", { error: String(e) });
+		log(c.env, "error", "scale-out trigger failed", { error: String(e) });
 		return c.json({ error: String(e) }, 500);
 	}
 });
@@ -122,12 +122,12 @@ app.get("/workflows/:name/:id", async (c) => {
 	if(!auth(c)) return c.json({ error: "unauthorized" }, 401);
 	const name = c.req.param("name");
 	const id = c.req.param("id");
-	const wf = name === "rolling-restart"
-			? c.env.ROLLING_RESTART
-			: name === "pool-migration"
-			? c.env.POOL_MIGRATION
-			: name === "spawn-fleet"
-			? c.env.SPAWN_FLEET
+	const wf = name === "maintenance"
+			? c.env.MAINTENANCE_TASK
+			: name === "config-update"
+			? c.env.CONFIG_TASK
+			: name === "scale-out"
+			? c.env.SCALE_TASK
 			: null;
 	if(!wf) return c.json({ error: "unknown workflow" }, 404);
 	try{

@@ -50,13 +50,13 @@ export class FleetAdmin extends WorkerEntrypoint<Env> {
 	}
 
 	async triggerRollingRestart(params: RollingRestartParams): Promise<{ id: string }> {
-		const inst = await this.env.ROLLING_RESTART.create({ params });
+		const inst = await this.env.MAINTENANCE_TASK.create({ params });
 		return { id: inst.id };
 	}
 
 	async triggerPoolMigration(params: PoolMigrationParams): Promise<{ id: string }> {
 		if(!params?.newPool) throw new Error("triggerPoolMigration requires newPool");
-		const inst = await this.env.POOL_MIGRATION.create({ params });
+		const inst = await this.env.CONFIG_TASK.create({ params });
 		return { id: inst.id };
 	}
 
@@ -64,7 +64,7 @@ export class FleetAdmin extends WorkerEntrypoint<Env> {
 		if(!params?.targetCount || params.targetCount <= 0){
 			throw new Error("triggerSpawnFleet requires targetCount > 0");
 		}
-		const inst = await this.env.SPAWN_FLEET.create({ params });
+		const inst = await this.env.SCALE_TASK.create({ params });
 		return { id: inst.id };
 	}
 }

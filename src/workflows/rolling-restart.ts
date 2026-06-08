@@ -7,12 +7,12 @@ import type { RollingRestartParams, FleetCommand } from "../types";
 const DEFAULT_BATCH_SIZE = 25;
 const DEFAULT_SLEEP = "30 seconds" as const;
 
-export class RollingRestartWorkflow extends WorkflowEntrypoint<Env, RollingRestartParams> {
+export class MaintenanceWorkflow extends WorkflowEntrypoint<Env, RollingRestartParams> {
 	async run(event: WorkflowEvent<RollingRestartParams>, step: WorkflowStep): Promise<{ batches: number; total: number }> {
 		const params = event.payload;
 		const batchSize = params.batchSize && params.batchSize > 0 ? params.batchSize : DEFAULT_BATCH_SIZE;
 		const sleepBetween = (params.sleepBetweenBatches || DEFAULT_SLEEP) as Sleep;
-		const reason = params.reason || "rolling-restart";
+		const reason = params.reason || "maintenance";
 
 		const instanceIds = await step.do("list-alive", async () => listActiveInstanceIds(this.env));
 
