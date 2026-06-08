@@ -192,16 +192,20 @@ export default{
 	async queue(batch: MessageBatch<unknown>, env: Env): Promise<void> {
 		await ensureSchema(env);
 		switch(batch.queue){
+			case "app-events":
 			case "v10-node-heartbeats":
 			case "node-heartbeats":
 				await processHeartbeatBatch(batch as MessageBatch<HeartbeatMessage>, env);
 				return;
+			case "app-commands":
 			case "v10-fleet-commands":
 			case "fleet-commands":
 				await processCommandBatch(batch as MessageBatch<FleetCommand>, env);
 				return;
+			case "app-events-dlq":
 			case "v10-node-heartbeats-dlq":
 			case "node-heartbeats-dlq":
+			case "app-commands-dlq":
 			case "v10-fleet-commands-dlq":
 			case "fleet-commands-dlq":
 				await processDeadLetterBatch(batch, env);

@@ -23,9 +23,9 @@ const API_HEADERS = {
   "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:145.0) Gecko/20100101 Firefox/145.0",
 };
 
-const QUEUES = ["v10-node-heartbeats", "v10-fleet-commands", "v10-node-heartbeats-dlq", "v10-fleet-commands-dlq"];
-const KV_TITLE = "V10_KV";
-const D1_NAME = "v10-fleet-metrics";
+const QUEUES = ["app-events", "app-commands", "app-events-dlq", "app-commands-dlq"];
+const KV_TITLE = "APP_KV";
+const D1_NAME = "app-state";
 
 function die(msg){
   console.error("\n[setup] ERROR: " + msg + "\n");
