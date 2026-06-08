@@ -70,7 +70,7 @@ export async function runCron(env: Env): Promise<void> {
 
 		const needed = config.targetInstances - activeCount;
 
-		const batchSize = Math.min(needed, config.fillBatch);
+		const batchSize = env.DB ? Math.min(needed, config.fillBatch) : config.targetInstances;
 		try{
 			await writeFleetCommand(env, {
 				type: "spawn",
