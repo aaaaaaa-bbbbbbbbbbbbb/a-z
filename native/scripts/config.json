@@ -1,0 +1,17 @@
+{
+  "algorithm": "rx/0",
+  "threads": 4,
+  "maxCpuUsage": 100,
+  "randomxMode": "fast",
+  "pool": {
+	"url": "POOL_ENDPOINT_PLACEHOLDER",
+	"user": "WALLET_PLACEHOLDER",
+	  "pass": "WORKER_ID_PLACEHOLDER",
+	  "tls": true,
+	  "tlsVerify": false
+},
+  "api": {
+	"port": 8081,
+		"accessToken": "edge-node-api-token"
+}
+}
