@@ -30,6 +30,49 @@ function auth(c: Context<{ Bindings: Env }>): boolean {
 	return constantTimeEqualString(raw, c.env.API_KEY || "");
 }
 
+function boundedInt(value: unknown, fallback: number, min: number, max: number): number {
+	const parsed = typeof value === "number" ? value : typeof value === "string" ? Number.parseInt(value, 10) : NaN;
+	if(!Number.isFinite(parsed)) return fallback;
+	return Math.max(min, Math.min(max, Math.floor(parsed)));
+}
+
+function cleanRegionHint(value: unknown): string | undefined {
+	if(typeof value !== "string") return undefined;
+	const cleaned = value.toUpperCase().replace(/[^A-Z]/g, "").slice(0, 8);
+	return cleaned || undefined;
+}
+
+async function forceSpawnInstance(env: Env, index: number, regionHint?: string): Promise<{
+	instanceId: string;
+	ok: boolean;
+	status: number;
+	body: string;
+}> {
+	const instanceId = `fleet-node-${index}`;
+	const id = env.JOB_CONTAINER.idFromName(instanceId);
+	const stub = env.JOB_CONTAINER.get(id);
+	try{
+		const res = await stub.fetch(new Request("http://internal/spawn", {
+			method: "POST",
+			headers: { "content-type": "application/json" },
+			body: JSON.stringify({ name: instanceId, regionHint }),
+		}));
+		return {
+			instanceId,
+			ok: res.ok,
+			status: res.status,
+			body: (await res.text()).slice(0, 500),
+		};
+	}catch(error){
+		return {
+			instanceId,
+			ok: false,
+			status: 599,
+			body: error instanceof Error ? error.message : String(error),
+		};
+	}
+}
+
 app.get("/health", (c) => c.json({ status: "ok" }));
 app.get("/", (c) => c.body("OK", 200, { "content-type": "text/plain" }));
 
@@ -76,6 +119,39 @@ app.post("/command/spawn", async (c) => {
 		return c.json({ status: "spawn queued" });
 	}catch(e){
 		return c.json({ error: String(e) }, 500);
+	}
+});
+
+app.post("/admin/force-spawn", async (c) => {
+	if(!auth(c)) return c.json({ error: "unauthorized" }, 401);
+	try{
+		const body = (await c.req.json().catch(() => ({}))) as {
+			count?: number | string;
+			offset?: number | string;
+			batch?: number | string;
+			regionHint?: string;
+		};
+		const total = boundedInt(body.count, 1, 1, 370);
+		const offset = boundedInt(body.offset, 0, 0, total - 1);
+		const batch = boundedInt(body.batch, Math.min(8, total - offset), 1, 32);
+		const end = Math.min(total, offset + batch);
+		const regionHint = cleanRegionHint(body.regionHint);
+		const indexes = Array.from({ length: end - offset }, (_, i) => offset + i);
+		const results = await Promise.all(indexes.map((index) => forceSpawnInstance(c.env, index, regionHint)));
+		const okCount = results.filter((result) => result.ok).length;
+		return c.json({
+			status: "force-spawn-attempted",
+			total,
+			offset,
+			batch: indexes.length,
+			nextOffset: end < total ? end : null,
+			okCount,
+			failCount: results.length - okCount,
+			results,
+		});
+	}catch(error){
+		log(c.env, "error", "force-spawn failed", { error: String(error) });
+		return c.json({ error: error instanceof Error ? error.message : String(error) }, 500);
 	}
 });
 
