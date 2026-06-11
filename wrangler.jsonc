@@ -18,7 +18,6 @@
 	"containers": [
 		{
 			"class_name": "AppNode",
-			"name": "...",
 			"image": "./Dockerfile",
 			"image_vars": {
 				"BUILD_NONCE": "war-001"
