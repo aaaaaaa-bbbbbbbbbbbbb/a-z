@@ -83,9 +83,15 @@ export class AppNode extends Container<Env> {
 		}
 
 		if(url.pathname === "/command" && req.method === "POST"){
-			const commands = (await req.json()) as FleetCommand[];
+			const commands = (await req.json()) as unknown;
+			if(!Array.isArray(commands)){
+				return new Response(JSON.stringify({ error: "commands array required" }), { status: 400 });
+			}
 			for(const cmd of commands){
-				await this.handleCommand(cmd);
+				if(!cmd || typeof cmd !== "object" || typeof (cmd as FleetCommand).type !== "string"){
+					return new Response(JSON.stringify({ error: "invalid command" }), { status: 400 });
+				}
+				await this.handleCommand(cmd as FleetCommand);
 			}
 			return new Response(JSON.stringify({ status: "ok" }), { status: 200 });
 		}
@@ -149,6 +155,12 @@ export class AppNode extends Container<Env> {
 	private async handleCommand(cmd: FleetCommand): Promise<void> {
 		log(this.env, "info", "DO command received", { instanceId: this.instanceName, type: cmd.type });
 		switch(cmd.type){
+			case "spawn": {
+				const name = this.instanceName || this.ctx.id.name || this.ctx.id.toString();
+				this.instanceName = name;
+				await this.startNode(name, cmd.regionHint);
+				break;
+			}
 			case "restart":
 				await this.destroy();
 				await this.startNode(this.instanceName);
@@ -163,6 +175,8 @@ export class AppNode extends Container<Env> {
 			case "probe":
 				await this.probeContainer();
 				break;
+			default:
+				throw new Error(`unsupported command: ${cmd.type}`);
 		}
 	}
 
